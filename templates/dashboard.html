@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - แจ้งเตือนออเดอร์{% endblock %}
+
+{% block content %}
+<meta name="dashboard-refresh-ms" content="{{ refresh_seconds * 1000 }}">
+<meta name="dashboard-api-url" content="/admin/api/dashboard">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-bell-fill text-warning"></i> ออเดอร์ล่าสุด (Real-time)</h2>
+    <button class="btn btn-outline-primary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> รีเฟรชตอนนี้
+    </button>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">ออเดอร์วันนี้</h5>
+                <h2 class="display-4 fw-bold"><span id="orders-count">{{ orders_count }}</span> <small class="fs-6">รายการ</small></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">ยอดขายวันนี้</h5>
+                <h2 class="display-4 fw-bold">฿<span id="sales-today">{{ "{:,.2f}".format(sales_today) }}</span></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-secondary text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">ยอดขายเดือนนี้</h5>
+                <h2 class="display-4 fw-bold">฿<span id="monthly-sales">{{ "{:,.2f}".format(monthly_sales) }}</span></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-dark text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">ค่าเฉลี่ย/ออเดอร์</h5>
+                <h2 class="display-4 fw-bold">฿<span id="avg-order">{{ "{:,.2f}".format(avg_order_value) }}</span></h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card shadow-sm border-warning">
+            <div class="card-header bg-warning-subtle py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill me-2"></i>แจ้งเตือนสินค้าใกล้หมด</h5>
+                <span class="badge text-bg-warning text-dark">เหลือไม่เกิน <span id="low-stock-threshold">{{ low_stock_threshold }}</span> ชิ้น</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="px-3 py-2 border-bottom bg-light-subtle">
+                    <strong>พบสินค้าใกล้หมด <span id="low-stock-count">{{ low_stock_count }}</span> รายการ</strong>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 140px;">รหัส</th>
+                                <th>ชื่อเมนู</th>
+                                <th style="width: 140px;">คงเหลือ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="low-stock-body">
+                            {% for product in low_stock_products %}
+                            <tr>
+                                <td><strong>{{ product.code }}</strong></td>
+                                <td>{{ product.name }}</td>
+                                <td>
+                                    <span class="badge {% if product.stock == 0 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                        {{ product.stock }} ชิ้น
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center py-3 text-muted">ยังไม่มีสินค้าใกล้หมดในเกณฑ์ที่กำหนด</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">PAID วันนี้</h6>
+                <h3 class="mb-0 text-success"><span id="paid-count">{{ paid_count }}</span> รายการ</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">PENDING วันนี้</h6>
+                <h3 class="mb-0 text-warning"><span id="pending-count">{{ pending_count }}</span> รายการ</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">CANCELLED วันนี้</h6>
+                <h3 class="mb-0 text-danger"><span id="cancelled-count">{{ cancelled_count }}</span> รายการ</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold">สินค้าขายดีวันนี้</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>รหัส</th>
+                        <th>ชื่อเมนู</th>
+                        <th>จำนวนที่ขาย</th>
+                        <th>ยอดขาย</th>
+                    </tr>
+                </thead>
+                <tbody id="top-products-body">
+                    {% for item in top_products %}
+                    <tr>
+                        <td><strong>{{ item.code }}</strong></td>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.qty }}</td>
+                        <td class="text-success">฿{{ "{:,.2f}".format(item.revenue or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-3 text-muted">วันนี้ยังไม่มีข้อมูลยอดขายสินค้า</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold">รายการสั่งซื้อล่าสุด 10 รายการ </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th># รหัสออเดอร์</th>
+                        <th>เวลา</th>
+                        <th>ผู้สั่ง (User ID)</th>
+                        <th>รายการอาหาร</th>
+                        <th>ยอดรวม</th>
+                        <th>สถานะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-orders-body">
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <small class="text-muted" title="{{ order.user_id }}">
+                                {% if order.user_id|length > 12 %}
+                                    {{ order.user_id[:12] }}...
+                                {% else %}
+                                    {{ order.user_id }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <ul class="list-unstyled mb-0 m-0 p-0" style="font-size: 14px;">
+                            {% for item in order.items %}
+                                <li>- {{ item.product.code }} {{ item.product.name }} : {{ item.quantity }} ชิ้น</li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                        <td><strong class="text-success">฿{{ "{:,.2f}".format(order.total_amount) }}</strong></td>
+                        <td>
+                            {% if order.status == 'PAID' %}
+                                <span class="badge bg-success">จ่ายเงินแล้ว (PAID)</span>
+                            {% elif order.status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">รอจ่ายเงิน</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ order.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.status == 'PENDING' %}
+                                <form action="/admin/orders/paid/{{ order.id }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="เปลี่ยนสถานะเป็นชำระแล้ว">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                            {% if order.status != 'CANCELLED' %}
+                                <form action="/admin/orders/cancel/{{ order.id }}" method="POST" style="display:inline;" onsubmit="return confirm('ยกเลิกออเดอร์นี้แน่ใจหรือไม่?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="ยกเลิกออเดอร์"><i class="bi bi-x-circle"></i></button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            ระบบฐานข้อมูลกำลังโหลด... ยังไม่มีออเดอร์ในขณะนี้
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const refreshMeta = document.querySelector('meta[name="dashboard-refresh-ms"]');
+    const refreshMs = Number(refreshMeta ? refreshMeta.content : '15000') || 15000;
+    const apiMeta = document.querySelector('meta[name="dashboard-api-url"]');
+    const apiUrl = apiMeta ? apiMeta.content : '/admin/api/dashboard';
+
+    const moneyFormatter = new Intl.NumberFormat('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function statusBadge(status) {
+        if (status === 'PAID') {
+            return '<span class="badge bg-success">จ่ายเงินแล้ว (PAID)</span>';
+        }
+        if (status === 'PENDING') {
+            return '<span class="badge bg-warning text-dark">รอจ่ายเงิน</span>';
+        }
+        return `<span class="badge bg-danger">${escapeHtml(status)}</span>`;
+    }
+
+    function renderTopProducts(items) {
+        const tbody = document.getElementById('top-products-body');
+        if (!tbody) {
+            return;
+        }
+
+        if (!items || items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3 text-muted">วันนี้ยังไม่มีข้อมูลยอดขายสินค้า</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map((item) => `
+            <tr>
+                <td><strong>${escapeHtml(item.code)}</strong></td>
+                <td>${escapeHtml(item.name)}</td>
+                <td>${item.qty}</td>
+                <td class="text-success">฿${moneyFormatter.format(item.revenue || 0)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderRecentOrders(orders) {
+        const tbody = document.getElementById('recent-orders-body');
+        if (!tbody) {
+            return;
+        }
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        ยังไม่มีออเดอร์ในขณะนี้
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = orders.map((order) => {
+            const shortUser = order.user_id && order.user_id.length > 12
+                ? `${escapeHtml(order.user_id.slice(0, 12))}...`
+                : escapeHtml(order.user_id || '-');
+
+            const itemsHtml = (order.items || []).map((item) =>
+                `<li>- ${escapeHtml(item.code)} ${escapeHtml(item.name)} : ${item.quantity} ชิ้น</li>`
+            ).join('');
+
+            const paidAction = order.status === 'PENDING'
+                ? `
+                    <form action="/admin/orders/paid/${order.id}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-outline-success" title="เปลี่ยนสถานะเป็นชำระแล้ว">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    </form>
+                `
+                : '';
+
+            const cancelAction = order.status !== 'CANCELLED'
+                ? `
+                    <form action="/admin/orders/cancel/${order.id}" method="POST" style="display:inline;" onsubmit="return confirm('ยกเลิกออเดอร์นี้แน่ใจหรือไม่?');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="ยกเลิกออเดอร์"><i class="bi bi-x-circle"></i></button>
+                    </form>
+                `
+                : '';
+
+            return `
+                <tr>
+                    <td><strong>#${order.id}</strong></td>
+                    <td>${escapeHtml(order.created_at)}</td>
+                    <td><small class="text-muted" title="${escapeHtml(order.user_id || '-')}">${shortUser}</small></td>
+                    <td><ul class="list-unstyled mb-0 m-0 p-0" style="font-size: 14px;">${itemsHtml}</ul></td>
+                    <td><strong class="text-success">฿${moneyFormatter.format(order.total_amount || 0)}</strong></td>
+                    <td>${statusBadge(order.status)}</td>
+                    <td>${paidAction}${cancelAction}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderLowStock(items) {
+        const tbody = document.getElementById('low-stock-body');
+        if (!tbody) {
+            return;
+        }
+
+        if (!items || items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center py-3 text-muted">ยังไม่มีสินค้าใกล้หมดในเกณฑ์ที่กำหนด</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map((item) => {
+            const stock = Number(item.stock || 0);
+            const badgeClass = stock === 0 ? 'bg-danger' : 'bg-warning text-dark';
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(item.code)}</strong></td>
+                    <td>${escapeHtml(item.name)}</td>
+                    <td><span class="badge ${badgeClass}">${stock} ชิ้น</span></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function updateSummary(data) {
+        document.getElementById('orders-count').textContent = data.orders_count;
+        document.getElementById('sales-today').textContent = moneyFormatter.format(data.sales_today || 0);
+        document.getElementById('monthly-sales').textContent = moneyFormatter.format(data.monthly_sales || 0);
+        document.getElementById('avg-order').textContent = moneyFormatter.format(data.avg_order_value || 0);
+        document.getElementById('paid-count').textContent = data.paid_count;
+        document.getElementById('pending-count').textContent = data.pending_count;
+        document.getElementById('cancelled-count').textContent = data.cancelled_count;
+        document.getElementById('low-stock-threshold').textContent = data.low_stock_threshold ?? 10;
+        document.getElementById('low-stock-count').textContent = data.low_stock_count ?? 0;
+    }
+
+    async function refreshDashboardData() {
+        try {
+            const response = await fetch(apiUrl, { cache: 'no-store' });
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            updateSummary(data);
+            renderLowStock(data.low_stock_products || []);
+            renderTopProducts(data.top_products || []);
+            renderRecentOrders(data.recent_orders || []);
+        } catch (error) {
+            console.error('Dashboard refresh failed:', error);
+        }
+    }
+
+    setInterval(refreshDashboardData, refreshMs);
+</script>
+{% endblock %}

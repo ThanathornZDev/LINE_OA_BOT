@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - สรุปยอดขาย{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-graph-up-arrow text-success"></i> สรุปยอดขาย</h2>
+    <div class="btn-group" role="group" aria-label="period selector">
+        <a href="/admin/sales?period=7" class="btn btn-outline-primary {% if period == 7 %}active{% endif %}">7 วัน</a>
+        <a href="/admin/sales?period=30" class="btn btn-outline-primary {% if period == 30 %}active{% endif %}">30 วัน</a>
+        <a href="/admin/sales?period=90" class="btn btn-outline-primary {% if period == 90 %}active{% endif %}">90 วัน</a>
+    </div>
+</div>
+
+<p class="text-muted">ช่วงข้อมูล: {{ start_date.strftime('%d/%m/%Y') }} - {{ end_date.strftime('%d/%m/%Y') }}</p>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <h6 class="card-title">รายได้รวม</h6>
+                <h3 class="fw-bold mb-0">฿{{ "{:,.2f}".format(revenue_total) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-body">
+                <h6 class="card-title">จำนวนออเดอร์ทั้งหมด</h6>
+                <h3 class="fw-bold mb-0">{{ order_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-warning text-dark shadow">
+            <div class="card-body">
+                <h6 class="card-title">ออเดอร์ชำระแล้ว</h6>
+                <h3 class="fw-bold mb-0">{{ paid_count }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card bg-dark text-white shadow">
+            <div class="card-body">
+                <h6 class="card-title">ค่าเฉลี่ยต่อออเดอร์</h6>
+                <h3 class="fw-bold mb-0">฿{{ "{:,.2f}".format(avg_order_value) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold">กราฟรายได้รายวัน</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="revenueChart" height="110"></canvas>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold">Top เมนูขายดี</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>รหัส</th>
+                        <th>ชื่อเมนู</th>
+                        <th>จำนวนขาย</th>
+                        <th>ยอดขาย</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in top_products %}
+                    <tr>
+                        <td><strong>{{ item.code }}</strong></td>
+                        <td>{{ item.name }}</td>
+                        <td>{{ item.qty }}</td>
+                        <td class="text-success">฿{{ "{:,.2f}".format(item.revenue or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">ยังไม่มีข้อมูลยอดขายในช่วงเวลานี้</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const labels = {{ labels|tojson }};
+    const values = {{ revenue_series|tojson }};
+
+    const ctx = document.getElementById('revenueChart');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'รายได้ (บาท)',
+                data: values,
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.15)',
+                pointRadius: 3,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

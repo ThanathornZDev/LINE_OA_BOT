@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ครัว - Kitchen Display System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        .kitchen-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 3px solid #ff6b6b;
+        }
+        .kitchen-header h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .order-count {
+            font-size: 1.6rem;
+            background: #ff6b6b;
+            padding: 6px 16px;
+            border-radius: 50px;
+            margin-left: 12px;
+        }
+        .kitchen-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 14px;
+            padding: 14px;
+            align-content: start;
+            height: calc(100vh - 92px);
+            overflow-y: auto;
+        }
+        .order-card {
+            background: linear-gradient(135deg, #2a2a3e 0%, #16213e 100%);
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        .order-card:hover {
+            border-color: #ffd700;
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.3);
+        }
+        .order-card.urgent {
+            border-color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3); }
+            50% { box-shadow: 0 8px 32px rgba(255, 107, 107, 0.6); }
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .order-id {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .order-time {
+            font-size: 1rem;
+            color: #aaa;
+        }
+        .order-user {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        .order-delivery {
+            font-size: 0.85rem;
+            color: #9ed0ff;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .items-list {
+            flex: 1;
+            margin-bottom: 10px;
+        }
+        .item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-name {
+            font-size: 1.05rem;
+            font-weight: bold;
+            flex: 1;
+        }
+        .item-code {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-right: 10px;
+        }
+        .item-qty {
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #667eea;
+            padding: 4px 10px;
+            border-radius: 50px;
+            min-width: 48px;
+            text-align: center;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-complete {
+            flex: 1;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+        }
+        .btn-complete:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(56, 239, 125, 0.5);
+            color: white;
+            text-decoration: none;
+        }
+        .btn-cancel {
+            flex: 0.5;
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(235, 51, 73, 0.3);
+        }
+        .btn-cancel:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(245, 92, 67, 0.5);
+            color: white;
+            text-decoration: none;
+        }
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 92px);
+            font-size: 2rem;
+            color: #666;
+        }
+        .empty-state i {
+            font-size: 3.5rem;
+            margin-bottom: 14px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <meta name="kitchen-refresh-ms" content="{{ refresh_seconds * 1000 }}">
+    <meta name="kitchen-api-url" content="/admin/api/kitchen">
+
+    <div class="kitchen-header">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <a href="/admin" class="btn btn-light" style="font-size: 1.3rem; padding: 10px 20px;">
+                <i class="bi bi-arrow-left"></i> กลับ
+            </a>
+            <h1 style="flex: 1; margin: 0;">
+                <i class="bi bi-shop"></i>
+                ครัว - Kitchen Display System
+                <span class="order-count" id="pending-count">{{ pending_count }}</span>
+            </h1>
+            <div style="width: 120px;"></div>
+        </div>
+    </div>
+
+    <div class="kitchen-container" id="orders-container">
+        {% if pending_orders %}
+            {% for order in pending_orders %}
+            <div class="order-card {% if order.created_at|timedelta_minutes > 10 %}urgent{% endif %}" data-order-id="{{ order.id }}">
+                <div class="order-header">
+                    <div>
+                        <div class="order-id">#{{ order.id }}</div>
+                        <div class="order-time"><i class="bi bi-clock"></i> {{ order.created_at.strftime('%H:%M') }}</div>
+                        <div class="order-user">{{ line_name(order.user_id) }}</div>
+                        <div class="order-delivery">
+                            {% if order.delivery_method == 'DELIVERY' %}
+                                จัดส่ง: {{ order.delivery_note or '-' }}
+                            {% else %}
+                                รับหน้าร้าน
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="items-list">
+                    {% for item in order.items %}
+                    <div class="item">
+                        <div>
+                            <div class="item-code">{{ item.product.code }}</div>
+                            <div class="item-name">{{ item.product.name }}</div>
+                        </div>
+                        <div class="item-qty">x{{ item.quantity }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-complete complete-btn" data-order-id="{{ order.id }}" title="ทำเสร็จแล้ว">
+                        <i class="bi bi-check-lg"></i> เสร็จสิ้น
+                    </button>
+                    <button class="btn-cancel cancel-btn" data-order-id="{{ order.id }}" title="ยกเลิก">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <div>ไม่มีรายการรอทำ</div>
+                <div style="font-size: 1.5rem; color: #555;">นั่งพัก!</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <audio id="notification-sound" preload="auto" src="/sound/noti.wav"></audio>
+
+    <script>
+        const refreshMeta = document.querySelector('meta[name="kitchen-refresh-ms"]');
+        const refreshMs = 10000;
+        const apiMeta = document.querySelector('meta[name="kitchen-api-url"]');
+        const apiUrl = apiMeta ? apiMeta.content : '/admin/api/kitchen';
+        const soundUrl = '/sound/noti.wav';
+
+        let currentOrderIds = new Set();
+        let isPlayingNotification = false;
+        let isAudioUnlocked = false;
+        let fallbackAudioCtx = null;
+
+        function unlockNotificationSound() {
+            const audio = document.getElementById('notification-sound');
+            if (!audio) return;
+            if (isAudioUnlocked) return;
+
+            audio.muted = true;
+            const unlockPromise = audio.play();
+            if (unlockPromise && typeof unlockPromise.then === 'function') {
+                unlockPromise
+                    .then(() => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        audio.muted = false;
+                        isAudioUnlocked = true;
+                    })
+                    .catch(() => {
+                        audio.muted = false;
+                        isAudioUnlocked = false;
+                    });
+                return;
+            }
+
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false;
+            isAudioUnlocked = true;
+        }
+
+        function playFallbackBeep(times = 2) {
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContextClass) return;
+                if (!fallbackAudioCtx) fallbackAudioCtx = new AudioContextClass();
+                const ctx = fallbackAudioCtx;
+                if (ctx.state === 'suspended') ctx.resume();
+
+                for (let i = 0; i < times; i += 1) {
+                    const offset = i * 0.16;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(920, ctx.currentTime + offset);
+
+                    gain.gain.setValueAtTime(0.0001, ctx.currentTime + offset);
+                    gain.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + offset + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + offset + 0.12);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + offset);
+                    osc.stop(ctx.currentTime + offset + 0.13);
+                }
+            } catch (e) {
+                console.log('Fallback beep failed:', e);
+            }
+        }
+
+        async function playOneSoundClip() {
+            const clip = new Audio(soundUrl);
+            clip.preload = 'auto';
+            clip.volume = 1.0;
+            await clip.play();
+            await new Promise((resolve) => {
+                const done = () => resolve();
+                clip.addEventListener('ended', done, { once: true });
+                setTimeout(done, 2500);
+            });
+        }
+
+        async function playNotificationSound() {
+            if (isPlayingNotification || !isAudioUnlocked) return;
+
+            isPlayingNotification = true;
+            for (let i = 0; i < 3; i += 1) {
+                try {
+                    await playOneSoundClip();
+                } catch (e) {
+                    console.log('Audio play failed:', e);
+                    playFallbackBeep(2);
+                    break;
+                }
+            }
+
+            isPlayingNotification = false;
+        }
+
+        function renderOrders(data) {
+            const container = document.getElementById('orders-container');
+            const orders = data.pending_orders || [];
+
+            // Smart detection: เล่นเสียงเมื่อมีออร์เดอร์ใหม่เข้ามา
+            const newOrderIds = new Set(orders.map(o => o.id));
+            let hasNewOrder = false;
+            for (let id of newOrderIds) {
+                if (!currentOrderIds.has(id)) {
+                    hasNewOrder = true;
+                    break;
+                }
+            }
+            if (hasNewOrder) {
+                playNotificationSound();
+            }
+            currentOrderIds = newOrderIds;
+
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <div>ไม่มีรายการรอทำ</div>
+                        <div style="font-size: 1.5rem; color: #555;">นั่งพัก!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map((order) => {
+                const minutes = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
+                const isUrgent = minutes > 10 ? 'urgent' : '';
+                
+                const itemsHtml = (order.items || []).map((item) => `
+                    <div class="item">
+                        <div>
+                            <div class="item-code">${item.code}</div>
+                            <div class="item-name">${item.name}</div>
+                        </div>
+                        <div class="item-qty">x${item.quantity}</div>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="order-card ${isUrgent}" data-order-id="${order.id}">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">#${order.id}</div>
+                                <div class="order-time"><i class="bi bi-clock"></i> ${order.created_at}</div>
+                                <div class="order-user">${order.user_name || order.user_id || '-'}</div>
+                                <div class="order-delivery">${order.delivery_method === 'DELIVERY' ? `จัดส่ง: ${order.delivery_note || '-'}` : 'รับหน้าร้าน'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="items-list">
+                            ${itemsHtml}
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-complete complete-btn" data-order-id="${order.id}" title="ทำเสร็จแล้ว">
+                                <i class="bi bi-check-lg"></i> เสร็จสิ้น
+                            </button>
+                            <button class="btn-cancel cancel-btn" data-order-id="${order.id}" title="ยกเลิก">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            attachListeners();
+        }
+
+        function updateCounter(count) {
+            const countEl = document.getElementById('pending-count');
+            if (countEl) countEl.textContent = count;
+        }
+
+        function attachListeners() {
+            document.querySelectorAll('.complete-btn').forEach(btn => {
+                btn.removeEventListener('click', completeOrder);
+                btn.addEventListener('click', completeOrder);
+            });
+
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.removeEventListener('click', cancelOrder);
+                btn.addEventListener('click', cancelOrder);
+            });
+        }
+
+        async function completeOrder(e) {
+            const orderId = e.currentTarget.dataset.orderId;
+            try {
+                const response = await fetch(`/admin/api/orders/${orderId}/mark-paid`, { method: 'POST' });
+                if (response.ok) {
+                    refreshKitchenData();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function cancelOrder(e) {
+            const orderId = e.currentTarget.dataset.orderId;
+            if (confirm('ยกเลิกออเดอร์นี้แน่ใจหรือไม่?')) {
+                try {
+                    const response = await fetch(`/admin/api/orders/${orderId}/cancel`, { method: 'POST' });
+                    if (response.ok) {
+                        refreshKitchenData();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        async function refreshKitchenData() {
+            try {
+                const response = await fetch(apiUrl, { cache: 'no-store' });
+                if (!response.ok) return;
+
+                const data = await response.json();
+                updateCounter(data.pending_count ?? 0);
+                renderOrders(data);
+            } catch (error) {
+                console.error('Refresh failed:', error);
+            }
+        }
+
+        // Initial load
+        refreshKitchenData();
+
+        // Auto refresh ทุก 10 วินาที (ไม่ refresh บ่อยๆ)
+        setInterval(refreshKitchenData, refreshMs);
+
+        // Unlock audio on first user interaction for browser autoplay policy
+        document.addEventListener('click', unlockNotificationSound, { passive: true });
+        document.addEventListener('touchstart', unlockNotificationSound, { passive: true });
+    </script>
+</body>
+</html>

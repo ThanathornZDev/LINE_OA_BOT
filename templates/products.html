@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - จัดการเมนูและสต๊อก{% endblock %}
+
+{% block content %}
+<style>
+    .drop-zone {
+        border: 2px dashed #adb5bd;
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #f8f9fa;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+        border-color: #0d6efd;
+        background: #eef5ff;
+    }
+
+    .drop-zone small {
+        color: #6c757d;
+    }
+
+    .stock-mini-form input[type="number"] {
+        width: 78px;
+    }
+
+    .log-table td,
+    .log-table th {
+        white-space: nowrap;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box-seam text-primary"></i> จัดการเมนู และ สต๊อกสินค้า</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="bi bi-plus-circle"></i> เพิ่มเมนูใหม่
+    </button>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body pb-0">
+        <ul class="nav nav-tabs" id="categoryTabs" role="tablist">
+            {% for group in grouped_products %}
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link {% if loop.first %}active{% endif %}"
+                    id="tab-{{ loop.index }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#tab-pane-{{ loop.index }}"
+                    type="button"
+                    role="tab"
+                >
+                    {{ group.name }}
+                    <span class="badge bg-secondary ms-1">{{ group.count }}</span>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content pt-3">
+            {% for group in grouped_products %}
+            <div
+                class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                id="tab-pane-{{ loop.index }}"
+                role="tabpanel"
+            >
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>รหัส</th>
+                                <th>รูปภาพ</th>
+                                <th>ชื่อเมนู</th>
+                                <th>ราคา (บาท)</th>
+                                <th>สต๊อกปัจจุบัน</th>
+                                <th>คลังสินค้า</th>
+                                <th>สถานะ</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in group['items'] %}
+                            <tr>
+                                <td><strong>{{ product.code }}</strong></td>
+                                <td>
+                                    {% if product.image_url %}
+                                        <img src="{{ product.image_url }}" alt="img" width="50" height="50" style="object-fit: cover; border-radius: 5px;">
+                                    {% else %}
+                                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 50px; height: 50px; border-radius: 5px; font-size: 10px;">ไม่มีรูป</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ product.name }}</td>
+                                <td>{{ "{:,.2f}".format(product.price) }}</td>
+                                <td><span class="badge bg-dark fs-6">{{ product.stock }}</span></td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1">
+                                        <form action="/admin/products/stock/in/{{ product.id }}" method="POST" class="d-flex align-items-center gap-1 stock-mini-form">
+                                            <input type="number" min="1" name="qty" class="form-control form-control-sm" placeholder="รับเข้า" required>
+                                            <input type="hidden" name="note" value="รับสินค้าเข้าคลังจากหน้าเมนูและสต๊อก">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="รับสินค้าเข้า"><i class="bi bi-box-arrow-in-down"></i></button>
+                                        </form>
+                                        <form action="/admin/products/stock/out/{{ product.id }}" method="POST" class="d-flex align-items-center gap-1 stock-mini-form">
+                                            <input type="number" min="1" name="qty" class="form-control form-control-sm" placeholder="จ่ายออก" required>
+                                            <input type="hidden" name="note" value="จ่ายสินค้าออกจากหน้าเมนูและสต๊อก">
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="จ่ายสินค้าออก"><i class="bi bi-box-arrow-up"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if product.is_active %}
+                                        <span class="badge bg-success">เปิดขาย</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">ปิดขาย</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}" title="แก้ไขเมนู">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <form action="/admin/products/delete/{{ product.id }}" method="POST" style="display: inline;" onsubmit="return confirm('ต้องการลบเมนูนี้ใช่หรือไม่?');">
+                                        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่มสินค้า -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/admin/products/add" method="POST" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">เพิ่มเมนูใหม่</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">รหัสเมนู (เช่น F01, D05)</label>
+                    <input type="text" name="code" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ชื่อเมนู</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">หมวดหมู่สินค้า</label>
+                    <select name="category" class="form-select" required>
+                        <option value="อาหาร">อาหาร</option>
+                        <option value="เครื่องดื่ม">เครื่องดื่ม</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ราคา (บาท)</label>
+                    <input type="number" step="0.01" name="price" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">สต๊อกเริ่มต้น (ชิ้น)</label>
+                    <input type="number" name="stock" class="form-control" value="100" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">รูปภาพเมนู (ลากไฟล์มาวางได้)</label>
+                    <div class="drop-zone" data-input-id="add_image_file" data-label-id="add_image_label">
+                        <div><i class="bi bi-cloud-arrow-up fs-4"></i></div>
+                        <div>ลากไฟล์มาวาง หรือคลิกเพื่อเลือกไฟล์</div>
+                        <small id="add_image_label">ยังไม่ได้เลือกไฟล์</small>
+                    </div>
+                    <input type="file" id="add_image_file" name="image_file" class="form-control mt-2" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    <div class="form-text">ระบบจะย่อรูปอัตโนมัติให้เหมาะกับการจัดเก็บ (สูงสุด 960x960)</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="submit" class="btn btn-success">บันทึกเมนู</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for product in products %}
+<div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="/admin/products/edit/{{ product.id }}" method="POST" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">แก้ไขเมนู {{ product.code }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">รหัสเมนู</label>
+                    <input type="text" name="code" class="form-control" value="{{ product.code }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ชื่อเมนู</label>
+                    <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">หมวดหมู่สินค้า</label>
+                    <select name="category" class="form-select" required>
+                        <option value="อาหาร" {% if (product.category or 'อาหาร') == 'อาหาร' %}selected{% endif %}>อาหาร</option>
+                        <option value="เครื่องดื่ม" {% if (product.category or 'อาหาร') == 'เครื่องดื่ม' %}selected{% endif %}>เครื่องดื่ม</option>
+                    </select>
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label">ราคา (บาท)</label>
+                        <input type="number" step="0.01" name="price" class="form-control" value="{{ product.price }}" required>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label">สต๊อก (ชิ้น)</label>
+                        <input type="number" name="stock" class="form-control" value="{{ product.stock }}" required>
+                    </div>
+                </div>
+                <div class="mb-3 form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="active_{{ product.id }}" name="is_active" {% if product.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="active_{{ product.id }}">เปิดขายเมนูนี้</label>
+                </div>
+
+                {% if product.image_url %}
+                <div class="mb-3">
+                    <label class="form-label">รูปปัจจุบัน</label>
+                    <div>
+                        <img src="{{ product.image_url }}" alt="current image" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label">อัปโหลดรูปใหม่ (ลากไฟล์มาวางได้)</label>
+                    <div class="drop-zone" data-input-id="edit_image_file_{{ product.id }}" data-label-id="edit_image_label_{{ product.id }}">
+                        <div><i class="bi bi-image fs-4"></i></div>
+                        <div>ลากไฟล์มาวาง หรือคลิกเพื่อเลือกรูปใหม่</div>
+                        <small id="edit_image_label_{{ product.id }}">ยังไม่ได้เลือกไฟล์ใหม่</small>
+                    </div>
+                    <input type="file" id="edit_image_file_{{ product.id }}" name="image_file" class="form-control mt-2" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateFileLabel(input, labelElement) {
+        if (!input || !labelElement) return;
+        const fileName = input.files && input.files[0] ? input.files[0].name : "ยังไม่ได้เลือกไฟล์";
+        labelElement.textContent = fileName;
+    }
+
+    document.querySelectorAll('.drop-zone').forEach((zone) => {
+        const input = document.getElementById(zone.dataset.inputId);
+        const label = document.getElementById(zone.dataset.labelId);
+        if (!input) return;
+
+        zone.addEventListener('click', () => input.click());
+
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('dragover');
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.classList.remove('dragover');
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+            input.files = e.dataTransfer.files;
+            updateFileLabel(input, label);
+        });
+
+        input.addEventListener('change', () => {
+            updateFileLabel(input, label);
+        });
+    });
+</script>
+{% endblock %}

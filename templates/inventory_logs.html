@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Log คลังสินค้า{% endblock %}
+
+{% block content %}
+<style>
+    .log-list-table tbody tr {
+        cursor: pointer;
+    }
+
+    .log-list-table tbody tr.active-row {
+        background: #e9f4ff;
+    }
+
+    .detail-card {
+        position: sticky;
+        top: 20px;
+    }
+
+    .detail-label {
+        color: #6c757d;
+        font-size: 0.86rem;
+        margin-bottom: 2px;
+    }
+
+    .detail-value {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0"><i class="bi bi-journal-text text-primary"></i> Log คลังสินค้า</h2>
+    <small class="text-muted">แสดงล่าสุด 300 รายการ</small>
+</div>
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm {% if movement_filter == 'ALL' %}btn-primary{% else %}btn-outline-primary{% endif %}" href="/admin/inventory-logs?type=ALL">ทั้งหมด</a>
+    <a class="btn btn-sm {% if movement_filter == 'IN' %}btn-success{% else %}btn-outline-success{% endif %}" href="/admin/inventory-logs?type=IN">รับเข้า</a>
+    <a class="btn btn-sm {% if movement_filter == 'OUT' %}btn-warning text-dark{% else %}btn-outline-warning{% endif %}" href="/admin/inventory-logs?type=OUT">เบิกออก</a>
+    <a class="btn btn-sm {% if movement_filter == 'SALE' %}btn-info text-dark{% else %}btn-outline-info{% endif %}" href="/admin/inventory-logs?type=SALE">ขาย</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 log-list-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>วันเวลา</th>
+                                <th>ประเภท</th>
+                                <th>สินค้า</th>
+                                <th>หมวดหมู่</th>
+                                <th>จำนวน</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr class="{% if selected_log and selected_log.id == log.id %}active-row{% endif %}" onclick="window.location='/admin/inventory-logs?type={{ movement_filter }}&id={{ log.id }}'">
+                                <td>{{ log.id }}</td>
+                                <td>{{ log.occurred_at.strftime('%d/%m/%Y %H:%M:%S') if log.occurred_at else '-' }}</td>
+                                <td>
+                                    {% if log.movement_type == 'IN' %}
+                                        <span class="badge bg-success">รับเข้า</span>
+                                    {% elif log.movement_type == 'OUT' %}
+                                        <span class="badge bg-warning text-dark">เบิกออก</span>
+                                    {% elif log.movement_type == 'SALE' %}
+                                        <span class="badge bg-primary">ขาย</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ log.movement_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ log.product.name if log.product else 'สินค้าที่ถูกลบ' }}
+                                    <div class="small text-muted">{{ log.product.code if log.product else '-' }}</div>
+                                </td>
+                                <td>{{ log.product.category if log.product and log.product.category else 'ทั่วไป' }}</td>
+                                <td class="fw-bold">{{ log.quantity }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">ไม่พบข้อมูล log</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm detail-card">
+            <div class="card-header bg-light">
+                <strong>รายละเอียด</strong>
+            </div>
+            <div class="card-body">
+                {% if selected_log %}
+                <div class="detail-label">เลข Log</div>
+                <div class="detail-value">{{ selected_log.id }}</div>
+
+                <div class="detail-label">วันเวลา</div>
+                <div class="detail-value">{{ selected_log.occurred_at.strftime('%d/%m/%Y %H:%M:%S') if selected_log.occurred_at else '-' }}</div>
+
+                <div class="detail-label">ประเภท</div>
+                <div class="detail-value">
+                    {% if selected_log.movement_type == 'IN' %}
+                        รับเข้า
+                    {% elif selected_log.movement_type == 'OUT' %}
+                        เบิกออก
+                    {% elif selected_log.movement_type == 'SALE' %}
+                        ขาย
+                    {% else %}
+                        {{ selected_log.movement_type }}
+                    {% endif %}
+                </div>
+
+                <div class="detail-label">สินค้า</div>
+                <div class="detail-value">{{ selected_log.product.name if selected_log.product else 'สินค้าที่ถูกลบ' }}</div>
+
+                <div class="detail-label">รหัสสินค้า</div>
+                <div class="detail-value">{{ selected_log.product.code if selected_log.product else '-' }}</div>
+
+                <div class="detail-label">หมวดหมู่</div>
+                <div class="detail-value">{{ selected_log.product.category if selected_log.product and selected_log.product.category else 'ทั่วไป' }}</div>
+
+                <div class="detail-label">จำนวน</div>
+                <div class="detail-value">{{ selected_log.quantity }}</div>
+
+                {% if selected_log.movement_type == 'SALE' %}
+                <hr>
+                <div class="detail-label">ออเดอร์</div>
+                <div class="detail-value">#{{ selected_log.order_id or '-' }}</div>
+
+                <div class="detail-label">ลูกค้าที่ซื้อ</div>
+                <div class="detail-value">{{ selected_log.customer_name or selected_log.customer_user_id or '-' }}</div>
+
+                <div class="detail-label">LINE User ID</div>
+                <div class="detail-value" style="font-size: 0.95rem; word-break: break-all;">{{ selected_log.customer_user_id or '-' }}</div>
+                {% endif %}
+
+                <div class="detail-label">หมายเหตุ</div>
+                <div class="detail-value">{{ selected_log.note or '-' }}</div>
+                {% else %}
+                <div class="text-muted">เลือกรายการจากตารางเพื่อดูรายละเอียด</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

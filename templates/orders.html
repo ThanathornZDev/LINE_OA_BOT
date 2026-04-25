@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+
+{% block title %}รายการสั่งซื้อ - ลำดับที่รอการจัดการ{% endblock %}
+
+{% block content %}
+<meta name="orders-refresh-ms" content="{{ refresh_seconds * 1000 }}">
+<meta name="orders-api-url" content="/admin/api/orders">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-receipt-fill text-info"></i> รายการสั่งซื้อทั้งหมด</h2>
+    <button class="btn btn-outline-primary" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i> รีเฟรชตอนนี้
+    </button>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-info text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">รอจ่ายเงิน</h5>
+                <h2 class="display-5 fw-bold"><span id="pending-count">{{ pending_count }}</span></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">จ่ายเงินแล้ว</h5>
+                <h2 class="display-5 fw-bold"><span id="paid-count">{{ paid_count }}</span></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">ยกเลิกแล้ว</h5>
+                <h2 class="display-5 fw-bold"><span id="cancelled-count">{{ cancelled_count }}</span></h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white shadow">
+            <div class="card-body">
+                <h5 class="card-title">รวมทั้งหมด</h5>
+                <h2 class="display-5 fw-bold"><span id="total-count">{{ total_count }}</span></h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter tabs -->
+<div class="mb-3">
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="filter_status" id="filter_all" value="ALL" checked>
+        <label class="btn btn-outline-secondary" for="filter_all">ทั้งหมด</label>
+
+        <input type="radio" class="btn-check" name="filter_status" id="filter_pending" value="PENDING">
+        <label class="btn btn-outline-info" for="filter_pending">รอจ่ายเงิน</label>
+
+        <input type="radio" class="btn-check" name="filter_status" id="filter_paid" value="PAID">
+        <label class="btn btn-outline-success" for="filter_paid">จ่ายแล้ว</label>
+
+        <input type="radio" class="btn-check" name="filter_status" id="filter_cancelled" value="CANCELLED">
+        <label class="btn btn-outline-danger" for="filter_cancelled">ยกเลิก</label>
+    </div>
+</div>
+
+<!-- Orders list -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0 fw-bold">รายการสั่งซื้อ</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th># รหัส</th>
+                        <th>เวลา</th>
+                        <th>ผู้สั่ง (User ID)</th>
+                        <th>รายการอาหาร</th>
+                        <th>ยอดรวม</th>
+                        <th>สถานะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-body">
+                    {% for order in recent_orders %}
+                    <tr data-order-id="{{ order.id }}">
+                        <td><strong>#{{ order.id }}</strong></td>
+                        <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <small class="text-muted" title="{{ order.user_id }}">
+                                {% if order.user_id|length > 12 %}
+                                    {{ order.user_id[:12] }}...
+                                {% else %}
+                                    {{ order.user_id }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <ul class="list-unstyled mb-0 m-0 p-0" style="font-size: 14px;">
+                            {% for item in order.items %}
+                                <li>- {{ item.product.code }} {{ item.product.name }} : {{ item.quantity }} ชิ้น</li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                        <td><strong class="text-success">฿{{ "{:,.2f}".format(order.total_amount) }}</strong></td>
+                        <td>
+                            {% if order.status == 'PAID' %}
+                                <span class="badge bg-success">จ่ายเงินแล้ว (PAID)</span>
+                            {% elif order.status == 'PENDING' %}
+                                <span class="badge bg-info text-dark">รอจ่ายเงิน</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ order.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.status == 'PENDING' %}
+                                <button class="btn btn-sm btn-outline-success mark-paid-btn" data-order-id="{{ order.id }}" title="เปลี่ยนสถานะเป็นชำระแล้ว">
+                                    <i class="bi bi-check-circle"></i> เสร็จสิ้น
+                                </button>
+                            {% endif %}
+                            {% if order.status != 'CANCELLED' %}
+                                <button class="btn btn-sm btn-outline-danger cancel-btn" data-order-id="{{ order.id }}" title="ยกเลิกออเดอร์">
+                                    <i class="bi bi-x-circle"></i> ยกเลิก
+                                </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            ยังไม่มีรายการสั่งซื้อในขณะนี้
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Audio notification (hidden) -->
+<audio id="notification-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+</audio>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const refreshMeta = document.querySelector('meta[name="orders-refresh-ms"]');
+    const refreshMs = Number(refreshMeta ? refreshMeta.content : '5000') || 5000;
+    const apiMeta = document.querySelector('meta[name="orders-api-url"]');
+    const apiUrl = apiMeta ? apiMeta.content : '/admin/api/orders';
+
+    const moneyFormatter = new Intl.NumberFormat('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    let lastOrderCount = 0;
+    let currentFilter = 'ALL';
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function statusBadge(status) {
+        if (status === 'PAID') {
+            return '<span class="badge bg-success">จ่ายเงินแล้ว (PAID)</span>';
+        }
+        if (status === 'PENDING') {
+            return '<span class="badge bg-info text-dark">รอจ่ายเงิน</span>';
+        }
+        return `<span class="badge bg-danger">${escapeHtml(status)}</span>`;
+    }
+
+    function playNotificationSound() {
+        const audio = document.getElementById('notification-sound');
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(e => console.log('Audio play failed:', e));
+        }
+    }
+
+    function renderOrders(orders) {
+        const tbody = document.getElementById('orders-body');
+        if (!tbody) return;
+
+        if (!orders || orders.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        ยังไม่มีรายการสั่งซื้อในขณะนี้
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = orders.map((order) => {
+            const shortUser = order.user_id && order.user_id.length > 12
+                ? `${escapeHtml(order.user_id.slice(0, 12))}...`
+                : escapeHtml(order.user_id || '-');
+
+            const itemsHtml = (order.items || []).map((item) =>
+                `<li>- ${escapeHtml(item.code)} ${escapeHtml(item.name)} : ${item.quantity} ชิ้น</li>`
+            ).join('');
+
+            const paidAction = order.status === 'PENDING'
+                ? `
+                    <button class="btn btn-sm btn-outline-success mark-paid-btn" data-order-id="${order.id}" title="เปลี่ยนสถานะเป็นชำระแล้ว">
+                        <i class="bi bi-check-circle"></i> เสร็จสิ้น
+                    </button>
+                `
+                : '';
+
+            const cancelAction = order.status !== 'CANCELLED'
+                ? `
+                    <button class="btn btn-sm btn-outline-danger cancel-btn" data-order-id="${order.id}" title="ยกเลิกออเดอร์">
+                        <i class="bi bi-x-circle"></i> ยกเลิก
+                    </button>
+                `
+                : '';
+
+            return `
+                <tr data-order-id="${order.id}">
+                    <td><strong>#${order.id}</strong></td>
+                    <td>${escapeHtml(order.created_at)}</td>
+                    <td><small class="text-muted" title="${escapeHtml(order.user_id || '-')}">${shortUser}</small></td>
+                    <td><ul class="list-unstyled mb-0 m-0 p-0" style="font-size: 14px;">${itemsHtml}</ul></td>
+                    <td><strong class="text-success">฿${moneyFormatter.format(order.total_amount || 0)}</strong></td>
+                    <td>${statusBadge(order.status)}</td>
+                    <td>${paidAction}${cancelAction}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // Attach event listeners
+        attachActionListeners();
+    }
+
+    function updateCounters(data) {
+        document.getElementById('pending-count').textContent = data.pending_count ?? 0;
+        document.getElementById('paid-count').textContent = data.paid_count ?? 0;
+        document.getElementById('cancelled-count').textContent = data.cancelled_count ?? 0;
+        document.getElementById('total-count').textContent = data.total_count ?? 0;
+
+        // Play sound if new orders arrived
+        const currentCount = data.pending_count ?? 0;
+        if (lastOrderCount > 0 && currentCount > lastOrderCount) {
+            playNotificationSound();
+        }
+        lastOrderCount = currentCount;
+    }
+
+    function attachActionListeners() {
+        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const orderId = this.dataset.orderId;
+                markOrderPaid(orderId);
+            });
+        });
+
+        document.querySelectorAll('.cancel-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const orderId = this.dataset.orderId;
+                if (confirm('ยกเลิกออเดอร์นี้แน่ใจหรือไม่?')) {
+                    cancelOrder(orderId);
+                }
+            });
+        });
+    }
+
+    async function markOrderPaid(orderId) {
+        try {
+            const response = await fetch(`/admin/api/orders/${orderId}/mark-paid`, { method: 'POST' });
+            if (response.ok) {
+                refreshOrdersData();
+            } else {
+                alert('เกิดข้อผิดพลาด');
+            }
+        } catch (error) {
+            console.error('Error marking order as paid:', error);
+        }
+    }
+
+    async function cancelOrder(orderId) {
+        try {
+            const response = await fetch(`/admin/api/orders/${orderId}/cancel`, { method: 'POST' });
+            if (response.ok) {
+                refreshOrdersData();
+            } else {
+                alert('เกิดข้อผิดพลาด');
+            }
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+        }
+    }
+
+    async function refreshOrdersData() {
+        try {
+            const response = await fetch(apiUrl, { cache: 'no-store' });
+            if (!response.ok) return;
+
+            const data = await response.json();
+            updateCounters(data);
+
+            // Filter orders
+            let filteredOrders = data.recent_orders || [];
+            if (currentFilter !== 'ALL') {
+                filteredOrders = filteredOrders.filter(o => o.status === currentFilter);
+            }
+            renderOrders(filteredOrders);
+        } catch (error) {
+            console.error('Orders refresh failed:', error);
+        }
+    }
+
+    // Filter event listeners
+    document.querySelectorAll('input[name="filter_status"]').forEach(radio => {
+        radio.addEventListener('change', function(e) {
+            currentFilter = this.value;
+            refreshOrdersData();
+        });
+    });
+
+    // Initial load
+    refreshOrdersData();
+
+    // Auto refresh
+    setInterval(refreshOrdersData, refreshMs);
+</script>
+{% endblock %}

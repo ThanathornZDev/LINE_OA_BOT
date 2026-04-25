@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - ตั้งค่าร้านค้า{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear-fill text-secondary"></i> ตั้งค่าร้านค้า</h2>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="POST" action="/admin/settings">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">ชื่อร้าน</label>
+                    <input type="text" name="shop_name" class="form-control" value="{{ settings.shop_name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">เบอร์โทรร้าน</label>
+                    <input type="text" name="shop_phone" class="form-control" value="{{ settings.shop_phone }}" placeholder="เช่น 02-123-4567">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">ที่อยู่ร้าน</label>
+                <textarea name="shop_address" class="form-control" rows="2" placeholder="ระบุที่อยู่ร้าน">{{ settings.shop_address }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">เวลารีเฟรช Dashboard อัตโนมัติ (วินาที)</label>
+                    <input type="number" min="5" max="300" name="dashboard_refresh_seconds" class="form-control" value="{{ settings.dashboard_refresh_seconds }}" required>
+                    <div class="form-text">กำหนดได้ตั้งแต่ 5 - 300 วินาที</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">ข้อความตอบกลับเมื่อลูกค้าพิมพ์ "ติดต่อ ADMIN"</label>
+                    <textarea name="line_contact_message" class="form-control" rows="2" required>{{ settings.line_contact_message }}</textarea>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">เกณฑ์แจ้งเตือนสินค้าใกล้หมด (ชิ้น)</label>
+                    <input type="number" min="0" max="99999" name="low_stock_threshold" class="form-control" value="{{ settings.low_stock_threshold }}" required>
+                    <div class="form-text">สินค้าที่คงเหลือน้อยกว่าหรือเท่ากับค่านี้ จะแสดงในกล่องแจ้งเตือนบน Dashboard</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">โหมดสถานะร้าน</label>
+                    <select name="shop_status_mode" class="form-select" required>
+                        <option value="AUTO" {% if settings.shop_status_mode == 'AUTO' %}selected{% endif %}>อัตโนมัติตามเวลาเปิด/ปิด</option>
+                        <option value="MANUAL_OPEN" {% if settings.shop_status_mode == 'MANUAL_OPEN' %}selected{% endif %}>เปิดรับออเดอร์เอง (บังคับเปิด)</option>
+                        <option value="MANUAL_CLOSE" {% if settings.shop_status_mode == 'MANUAL_CLOSE' %}selected{% endif %}>ปิดรับออเดอร์เอง (บังคับปิด)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">เวลาเปิดร้าน</label>
+                    <input type="time" name="shop_open_time" class="form-control" value="{{ settings.shop_open_time }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">เวลาปิดร้าน</label>
+                    <input type="time" name="shop_close_time" class="form-control" value="{{ settings.shop_close_time }}" required>
+                    <div class="form-text">รองรับเวลาแบบข้ามวัน เช่น เปิด 18:00 ปิด 02:00</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">ข้อความตอนร้านปิด (ส่งให้ลูกค้าทาง LINE)</label>
+                <textarea name="shop_closed_message" class="form-control" rows="2" placeholder="ขออภัย ร้านยังไม่เปิดรับออเดอร์ในขณะนี้">{{ settings.shop_closed_message }}</textarea>
+            </div>
+
+            <div class="alert {% if shop_is_open %}alert-success{% else %}alert-warning{% endif %} py-2" role="alert">
+                <strong>สถานะปัจจุบัน:</strong>
+                {% if shop_is_open %}
+                    เปิดรับออเดอร์
+                {% else %}
+                    ปิดรับออเดอร์
+                {% endif %}
+                <br>
+                <small>{{ shop_open_reason }}</small>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="test_mode_checkbox" name="test_mode_enabled" {% if settings.test_mode_enabled == '1' %}checked{% endif %}>
+                    <label class="form-check-label" for="test_mode_checkbox">
+                        <strong>🧪 เปิดโหมดทดสอบ (Test Mode)</strong>
+                        <div class="form-text">เมื่อเปิดจะสามารถทดสอบระบบโดยไม่ต้องจ่ายเงินจริง ผู้ใช้พิมพ์ 'testpay' เพื่อจำลองการชำระเงิน</div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> บันทึกการตั้งค่า
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-shield-lock-fill"></i> ความปลอดภัยแอดมิน</h5>
+
+        <div class="alert alert-light border" role="alert">
+            <div><strong>RESET PASSWORD</strong></div>
+            <div class="small text-muted mt-1">รีเซ็ตรหัสผ่าน</div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/admin/change-password" class="btn btn-outline-primary">
+                <i class="bi bi-key"></i> เปลี่ยนรหัสผ่านแอดมิน
+            </a>
+            <!-- <a href="/admin/forgot-password" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i> ทดสอบหน้าลืมรหัสผ่าน
+            </a> -->
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-body">
+        <h5 class="mb-3"><i class="bi bi-megaphone-fill"></i> Broadcast LINE OA</h5>
+
+        <div class="alert alert-info py-2" role="alert">
+            <strong>โควต้า Broadcast:</strong> {{ broadcast_quota.label }}
+        </div>
+
+        <form method="POST" action="/admin/broadcast" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label">ข้อความที่จะส่ง (Text)</label>
+                <textarea name="broadcast_text" class="form-control" rows="3" placeholder="พิมพ์ข้อความประกาศ เช่น โปรโมชันวันนี้... "></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">รูปภาพ (Image) - ไม่บังคับ</label>
+                <input type="file" name="broadcast_image" class="form-control" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+                <div class="form-text">รองรับ .jpg .jpeg .png และต้องตั้งค่า BASE_URL เป็น HTTPS ก่อนส่งรูป</div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-send"></i> ส่ง Broadcast
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
